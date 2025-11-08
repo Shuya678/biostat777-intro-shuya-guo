@@ -2,15 +2,71 @@
   {
     "objectID": "index.html",
     "href": "index.html",
-    "title": "biostat777-intro-shuya-guo",
+    "title": "Welcome to My Website",
     "section": "",
-    "text": "This is a Quarto website.\nTo learn more about Quarto websites visit https://quarto.org/docs/websites."
+    "text": "👋 Welcome!\nHello! My name is Shuya Guo, and this is my personal website.\nI’m currently a student at Johns Hopkins University.\nIn my free time, I enjoy listening to music and watching movies."
   },
   {
     "objectID": "about.html",
     "href": "about.html",
     "title": "About",
     "section": "",
-    "text": "About this site"
+    "text": "Hi! I’m Shuya, an MHS student in the Department of Health, Behavior and Society (HBS).\nMy research interests focus on mental health research."
+  },
+  {
+    "objectID": "about.html#contact",
+    "href": "about.html#contact",
+    "title": "About",
+    "section": "Contact",
+    "text": "Contact\n\n📧 Email: sguo66@jh.edu"
+  },
+  {
+    "objectID": "example.html",
+    "href": "example.html",
+    "title": "Example analysis: Global Depression",
+    "section": "",
+    "text": "Does a country’s economic development (GDP per capita) relate to the prevalence of depressive disorders globally？"
+  },
+  {
+    "objectID": "example.html#research-question",
+    "href": "example.html#research-question",
+    "title": "Example analysis: Global Depression",
+    "section": "",
+    "text": "Does a country’s economic development (GDP per capita) relate to the prevalence of depressive disorders globally？"
+  },
+  {
+    "objectID": "example.html#intended-audience",
+    "href": "example.html#intended-audience",
+    "title": "Example analysis: Global Depression",
+    "section": "Intended audience",
+    "text": "Intended audience\nClass peers, TAs, and public-health stakeholders who want a compact, visual overview of the GDP–depression relationship."
+  },
+  {
+    "objectID": "example.html#data-sources",
+    "href": "example.html#data-sources",
+    "title": "Example analysis: Global Depression",
+    "section": "Data sources",
+    "text": "Data sources\n\nDepression prevalence: WHO Global Health Observatory (population-based prevalence of depression).\nSource page (indicator & dictionary): https://www.who.int/data/gho/data/indicators/indicator-details/GHO/estimated-population-based-prevalence-of-depression\n\nGDP per capita: World Bank, GDP per capita (current US$).\nSource page & metadata: https://data.worldbank.org/indicator/NY.GDP.PCAP.CD"
+  },
+  {
+    "objectID": "example.html#load-and-tidy-data",
+    "href": "example.html#load-and-tidy-data",
+    "title": "Example analysis: Global Depression",
+    "section": "Load and tidy data",
+    "text": "Load and tidy data\n\nlibrary(readr)\nlibrary(dplyr)\nlibrary(janitor)\nlibrary(tidyr)\nlibrary(ggplot2)\nlibrary(scales)\n\n# Read CSV file）\ndep_raw &lt;- read_csv(\"depression_data.csv\")\ngdp_raw &lt;- readr::read_csv(\"gdp_data.csv\", skip = 4, show_col_types = FALSE)\n\n# Cleaning WHO Depression Rate Data\ndep_clean &lt;- dep_raw %&gt;%\n  clean_names() %&gt;%\n  rename(Country = location, DepressionRate = value, Year = period) %&gt;%\n  filter(!is.na(DepressionRate))\n\n# Organize GDP data \ngdp_long &lt;- gdp_raw %&gt;%\n  janitor::clean_names() %&gt;%                             # Country Name -&gt; country_name; 1960 -&gt; x1960\n  dplyr::select(country_name, matches(\"^x[0-9]{4}$\")) %&gt;%# 选择国家名和所有年份列\n  tidyr::pivot_longer(\n    cols = matches(\"^x[0-9]{4}$\"),\n    names_to   = \"Year\",\n    values_to  = \"GDP_per_capita\"\n  ) %&gt;%\n  dplyr::mutate(\n    Year    = as.integer(sub(\"^x\", \"\", Year))            # x1960 -&gt; 1960\n  ) %&gt;%\n  dplyr::rename(Country = country_name) %&gt;%\n  dplyr::select(Country, Year, GDP_per_capita)\n\n# Merge two datasets\ndep_gdp &lt;- dep_clean %&gt;%\n  inner_join(gdp_long, by = c(\"Country\", \"Year\"))\n\n# Extract data from 2015\ndat_latest &lt;- dep_gdp %&gt;%\n  filter(Year == 2015)"
+  },
+  {
+    "objectID": "example.html#plots",
+    "href": "example.html#plots",
+    "title": "Example analysis: Global Depression",
+    "section": "Plots",
+    "text": "Plots\n\n\n\n\n\n\nNote\n\n\n\nThe data only represent 2015 and may not reflect more recent global trends in mental health.\n\n\n\n1) GDP per capita vs. depression prevalence (2015)\n\np1 &lt;- ggplot(dat_latest, aes(GDP_per_capita, DepressionRate)) +\n  geom_point(alpha = 0.7, color = \"steelblue\") +\n  geom_smooth(method = \"lm\", se = TRUE, color = \"black\") +\n  # 旧: scale_x_continuous(labels = scales::label_number_si())\n  scale_x_continuous(\n    labels = scales::label_number(scale_cut = scales::cut_short_scale())\n  ) +\n  labs(\n    title   = \"GDP per capita vs. depression prevalence (2015, by country)\",\n    x       = \"GDP per capita (current US$)\",\n    y       = \"Depression prevalence (%)\",\n    caption = \"Sources: WHO GHO (2015), World Bank (2015)\"\n  ) +\n  theme_minimal(base_size = 12)\n\np1  # 最后一行把对象写出来，才能显示\n\n\n\n\n\n\n\n\n\n\n2) Highlight top and bottom GDP countries\n\ntop_bottom &lt;- dat_latest |&gt;\n  arrange(desc(GDP_per_capita)) |&gt;\n  slice(c(1:5, (n()-4):n()))\n\np2 &lt;- ggplot(dat_latest, aes(GDP_per_capita, DepressionRate)) +\n  geom_point(alpha = 0.5, color = \"gray60\") +\n  geom_point(data = top_bottom, aes(color = Country), size = 3) +\n  geom_smooth(method = \"lm\", se = FALSE, color = \"black\") +\n  # 旧: scale_x_continuous(labels = scales::label_number_si())\n  scale_x_continuous(\n    labels = scales::label_number(scale_cut = scales::cut_short_scale())\n  ) +\n  labs(\n    title = \"Highlighted: richest vs poorest countries (2015)\",\n    x     = \"GDP per capita (US$)\",\n    y     = \"Depression prevalence (%)\",\n    color = \"Highlighted countries\"\n  ) +\n  theme_minimal(base_size = 12)\np2\n\n\n\n\n\n\n\n\n\n\n3) Faceted plot — GDP vs. depression prevalence (2015)\n\n# 使用 2015 年数据，按 GDP 四分位分面\ndat_facet &lt;- dat_latest %&gt;%\n  dplyr::filter(!is.na(GDP_per_capita), !is.na(DepressionRate)) %&gt;%\n  dplyr::mutate(\n    GDP_quartile = dplyr::ntile(GDP_per_capita, 4),\n    GDP_quartile = factor(\n      GDP_quartile,\n      levels = c(1, 2, 3, 4),\n      labels = c(\"Q1: lowest GDP\", \"Q2\", \"Q3\", \"Q4: highest GDP\")\n    )\n  )\n\n### 3) Faceted plot — GDP vs. depression prevalence (2015)\n\n\ndat_facet &lt;- dat_latest %&gt;%\n  dplyr::filter(!is.na(GDP_per_capita), !is.na(DepressionRate)) %&gt;%\n  dplyr::mutate(\n    GDP_quartile = dplyr::ntile(GDP_per_capita, 4),\n    GDP_quartile = factor(GDP_quartile, levels = 1:4,\n                          labels = c(\"Q1: lowest GDP\",\"Q2\",\"Q3\",\"Q4: highest GDP\"))\n  )\n\np3 &lt;- ggplot(dat_facet, aes(GDP_per_capita, DepressionRate)) +\n  geom_point(alpha = 0.6, color = \"steelblue\") +\n  geom_smooth(method = \"lm\", se = FALSE, color = \"black\") +\n  scale_x_continuous(labels = scales::label_number(scale_cut = scales::cut_short_scale())) +\n  labs(\n    title = \"GDP per capita vs. depression prevalence (2015)\\nFaceted by GDP quartiles\",\n    x = \"GDP per capita (current US$)\",\n    y = \"Depression prevalence (%)\"\n  ) +\n  facet_wrap(~ GDP_quartile, nrow = 2) +\n  theme_minimal(base_size = 12)\n\n\np3  # 最后一行写对象名，输出图像\n\n\n\n\n\n\n\n\n\n\n4) External image\n\n\n\nEstimated population-based prevalence of depression (WHO, 2015)\n\n\nSource: World Health Organization — GHO Indicator Data Portal."
+  },
+  {
+    "objectID": "example.html#summary",
+    "href": "example.html#summary",
+    "title": "Example analysis: Global Depression",
+    "section": "Summary",
+    "text": "Summary\n\n\n\n\n\n\nTip\n\n\n\nWhen interpreting the plots, keep in mind that correlation does not imply causation.\nAdditional factors such as healthcare systems, culture, and reporting accuracy may also influence the data.\n\n\n\n\nWhy this matters\nGlobal mental health policy should consider both social and economic determinants.\nOverall, countries with higher GDP per capita tend to exhibit lower depression prevalence. The linear trend shows a moderate negative relationship.\nHowever, several exceptions exist—some middle-income countries have relatively high reported depression rates. The pattern suggests that while economic growth may reduce mental health burden indirectly, other social and cultural factors play a major role.\n\n4) Function summary\n\n\n\n\n\n\n\nPackage\nExample functions used\n\n\n\n\ndplyr\nfilter(), mutate(),rename(), select(), inner_join()\n\n\ntidyr\npivot_longer()\n\n\nggplot2\ngeom_point(), geom_smooth(), labs(), scale_x_continuous()"
   }
 ]
